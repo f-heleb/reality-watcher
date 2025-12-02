@@ -177,13 +177,19 @@ BEZ_AI_ANALYSIS_ENABLED=0
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SLACK_BOT_TOKEN` | Bot user OAuth token | *required* |
-| `SLACK_APP_TOKEN` | App-level token for Socket Mode | *required* |
+| `SLACK_BOT_TOKEN` | Bot user OAuth token (Sreality) | *required* |
+| `SLACK_APP_TOKEN` | App-level token for Socket Mode (Sreality) | *required* |
+| `BEZ_SLACK_BOT_TOKEN` | Bot user OAuth token (Bezrealitky) | *optional* |
+| `BEZ_SLACK_APP_TOKEN` | App-level token (Bezrealitky) | *optional* |
 | `OPENAI_API_KEY` | OpenAI API key for AI analysis | *optional* |
 | `DEFAULT_INTERVAL_SEC` | Default polling interval in seconds | `60` |
-| `WATCHERS_JSON` | Path to watchers configuration | `watchers.json` |
-| `SEEN_STATE_JSON` | Path to seen state storage | `seen_state.json` |
+| `WATCHERS_JSON` | Path to Sreality watchers configuration | `watchers.json` |
+| `SEEN_STATE_JSON` | Path to Sreality seen state storage | `seen_state.json` |
+| `BEZ_WATCHERS_JSON` | Path to Bezrealitky watchers configuration | `bez_watchers.json` |
+| `BEZ_SEEN_STATE_JSON` | Path to Bezrealitky seen state storage | `bez_seen_state.json` |
 | `BEZ_AI_ANALYSIS_ENABLED` | Enable AI for Bezrealitky (1/0) | `0` |
+
+**Note**: To run both bots simultaneously, you need separate Slack bot tokens for each platform.
 
 ### Watcher Configuration
 
@@ -303,9 +309,10 @@ Mention the bot (`@RealityWatcher`) followed by a command:
 ```
 
 The bot will:
-1. Fetch listing details
-2. Run AI analysis
-3. Send results to your DM
+1. Fetch the listing detail page
+2. Extract description and property details
+3. Run AI analysis using GPT-4
+4. Send comprehensive results to your DM
 
 ---
 
@@ -377,18 +384,17 @@ novostavby v této lokalitě...
 ```
 reality-watcher/
 ├── config.py                 # Centralized configuration
-├── run_manager.py           # Main entry point
+├── run_manager.py           # Main entry point (Sreality bot)
 │
 ├── manager.py               # Sreality bot manager
 ├── watcher.py              # Sreality watcher thread
 ├── sreality_parser.py      # Sreality HTML parser
 │
-├── bez_manager.py          # Bezrealitky bot manager  
+├── bez_manager.py          # Bezrealitky bot manager (standalone)
 ├── bez_watcher.py          # Bezrealitky watcher thread
 ├── bez_parser.py           # Bezrealitky HTML parser
 ├── bez_formatter.py        # Bezrealitky Slack formatter
 │
-├── listing_parser.py       # Unified listing parser
 ├── slack_utils.py          # Slack API utilities
 ├── ai_analysis.py          # OpenAI GPT integration
 ├── stats_utils.py          # Logging and statistics
@@ -405,12 +411,30 @@ reality-watcher/
 ### Key Files
 
 - **`config.py`** - Loads environment variables, defines constants
-- **`run_manager.py`** - Bootstraps the bot, connects to Slack
-- **`manager.py`** / **`bez_manager.py`** - Command handlers, watcher lifecycle
+- **`run_manager.py`** - Bootstraps the Sreality bot, connects to Slack
+- **`manager.py`** - Command handlers, watcher lifecycle management
 - **`watcher.py`** / **`bez_watcher.py`** - Background polling workers
-- **`*_parser.py`** - HTML scraping and data extraction
+- **`sreality_parser.py`** / **`bez_parser.py`** - HTML scraping and data extraction
 - **`slack_utils.py`** - Slack Block Kit formatting, API wrappers
 - **`ai_analysis.py`** - OpenAI integration with structured prompts
+- **`stats_utils.py`** - TSV logging and statistics
+
+### Architecture Notes
+
+**Dual Bot Design**: The project supports two separate bot instances:
+- **Sreality Bot** (`run_manager.py` + `manager.py`) - Main bot for Sreality.cz
+- **Bezrealitky Bot** (`bez_manager.py`) - Standalone bot for Bezrealitky.cz
+
+To run both platforms:
+```bash
+# Terminal 1: Sreality bot
+python run_manager.py
+
+# Terminal 2: Bezrealitky bot (optional)
+python bez_manager.py
+```
+
+Each bot uses separate configuration files and Slack tokens to avoid conflicts.
 
 ---
 
@@ -479,7 +503,11 @@ reality-watcher/
 1. Create `<source>_parser.py`:
    ```python
    def extract_new_listings(url, seen_ids, scan_limit, take):
-       # Return (new_items, total_found)
+       # Scrape and return (new_items, total_found)
+       pass
+   
+   def scrape_description(url):
+       # Extract detailed description
        pass
    ```
 
@@ -499,7 +527,7 @@ reality-watcher/
            pass
    ```
 
-4. Add configuration in `.env`
+4. Add configuration in `.env` and create separate JSON state files
 
 ### Running Tests
 

@@ -8,8 +8,7 @@ import json
 import threading
 import time
 import html
-from typing import Dict, List, Optional, Tuple
-from typing import Optional
+from typing import Dict, List, Optional
 
 
 from slack_sdk.web import WebClient
@@ -28,9 +27,8 @@ from slack_utils import (
     build_listing_blocks,
     send_listing_analysis_dm
 )
-from sreality_parser import fetch_page, extract_new_listings, scrape_description
+from sreality_parser import scrape_description, parse_title_fields
 from stats_utils import stats_last, stats_window
-from listing_parser import build_listing_from_url
 
 # ---------------------------
 # Persistence helpers
@@ -634,8 +632,28 @@ class BotManager:
         url = self._unwrap_url(url_token)
 
         try:
-            # stáhnout detail inzerátu a vybuildit unified listing
-            listing = build_listing_from_url(url)
+            # Získat popis z detail stránky
+            description = scrape_description(url)
+            
+            # Vytvořit základní strukturu listingu
+            listing = {
+                "url": url,
+                "title": url,  # fallback
+                "description": description,
+                "raw_text": description,  # pro AI analýzu
+                "price_czk": None,
+                "area_m2": None,
+                "dispo": None,
+                "locality": None,
+                "price_per_m2": None,
+            }
+            
+            # Pokusit se extrahovat více detailů z popisu
+            if description:
+                # Parsovat základní pole z popisu pokud jsou v textu
+                parsed = parse_title_fields(description)
+                listing.update(parsed)
+                
         except Exception as e:
             slack_post_text(self.client, channel_id, f"Chyba při načítání inzerátu: {e}")
             return
