@@ -1,0 +1,17 @@
+{
+  "Pozemky_Stredni_Cechy": {
+    "channel_id": "C09RNG7V99S",
+    "url": "https://www.sreality.cz/hledani/prodej/pozemky/stavebni-parcely/stredocesky-kraj?plocha-od=950",
+    "interval": 60
+  },
+  "2kk_praha_10_50m2_PRONAJEM": {
+    "channel_id": "C09SGT2SE9W",
+    "url": "https://www.sreality.cz/hledani/pronajem/byty/praha-10?velikost=2%2Bkk&vlastnictvi=osobni&plocha-do=50",
+    "interval": 60
+  },
+  "2kk_praha_10_50m2_prodej": {
+    "channel_id": "C09SHA93WU8",
+    "url": "https://www.sreality.cz/hledani/prodej/byty/praha-10?velikost=2%2Bkk&plocha-do=50",
+    "interval": 60
+  }
+}
