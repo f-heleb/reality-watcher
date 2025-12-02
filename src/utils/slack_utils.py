@@ -13,14 +13,13 @@ Includes:
 """
 
 from __future__ import annotations
-from typing import List
+from typing import List, Dict, Any
 import re
 from datetime import datetime
 
-from typing import Dict, Any
 from slack_sdk.web import WebClient
 
-from ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
+from src.core.ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
 
 # Non-breaking space for nice thousands formatting
 NBSP = "\u00A0"

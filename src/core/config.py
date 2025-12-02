@@ -23,8 +23,9 @@ SLACK_APP_TOKEN: str | None = os.environ.get("SLACK_APP_TOKEN")   # xapp-...
 DEFAULT_INTERVAL_SEC: int = int(os.environ.get("DEFAULT_INTERVAL_SEC", "60"))
 
 # JSON persistence (can be swapped later for SQLite/Redis)
-CONFIG_PATH: str = os.environ.get("WATCHERS_JSON", "watchers.json")
-STATE_PATH: str = os.environ.get("SEEN_STATE_JSON", "seen_state.json")
+# Paths are relative to project root
+CONFIG_PATH: str = os.environ.get("WATCHERS_JSON", "config/watchers.json")
+STATE_PATH: str = os.environ.get("SEEN_STATE_JSON", "config/seen_state.json")
 
 # ---- HTTP/scraper defaults ----
 USER_AGENT: str = os.environ.get(

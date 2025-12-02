@@ -1,5 +1,8 @@
 # manager.py
 # -*- coding: utf-8 -*-
+"""
+Sreality.cz Bot Manager - Handles Slack commands and watcher lifecycle.
+"""
 from __future__ import annotations
 
 import os
@@ -16,26 +19,21 @@ from slack_sdk.socket_mode import SocketModeClient
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
-from config import SLACK_BOT_TOKEN, DEFAULT_INTERVAL_SEC
-from watcher import Watcher, MemoryStateRepo
-from slack_utils import (
+from src.core.config import DEFAULT_INTERVAL_SEC, CONFIG_PATH, STATE_PATH
+from src.sreality.watcher import Watcher, MemoryStateRepo
+from src.utils.slack_utils import (
     slack_post_text,
-    slack_post_blocks,
     invite_users_to_channel,
     safe_rename_with_increment,
     archive_channel,
-    build_listing_blocks,
     send_listing_analysis_dm
 )
-from sreality_parser import scrape_description, parse_title_fields
-from stats_utils import stats_last, stats_window
+from src.sreality.parser import scrape_description, parse_title_fields
+from src.utils.stats_utils import stats_last, stats_window
 
 # ---------------------------
 # Persistence helpers
 # ---------------------------
-CONFIG_PATH = "watchers.json"   # name -> {"channel_id","url","interval"}
-STATE_PATH  = "seen_state.json" # channel_id -> [ids]
-
 STATS_LAST_CMD   = re.compile(r"(?i)^\s*stats\s+last\s+(\d+)\s*$")
 STATS_WINDOW_CMD = re.compile(
     r"(?i)^\s*stats\s+window\s+(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}:\d{2})?)\s*(?:to\s+(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}:\d{2})?))?\s*$"

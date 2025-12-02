@@ -1,0 +1,1 @@
+# Bezrealitky.cz integration

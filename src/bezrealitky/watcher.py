@@ -1,4 +1,7 @@
 # bez_watcher.py
+"""
+Bezrealitky.cz Watcher - Background polling thread for monitoring search results.
+"""
 from __future__ import annotations
 
 import os
@@ -10,13 +13,13 @@ import traceback
 
 from slack_sdk.web import WebClient
 
-from config import DEFAULT_INTERVAL_SEC
-from slack_utils import slack_post_blocks, slack_post_text
-from bez_parser import extract_new_listings
-from bez_formatter import build_listing_blocks_bez
+from src.core.config import DEFAULT_INTERVAL_SEC
+from src.utils.slack_utils import slack_post_blocks, slack_post_text
+from src.bezrealitky.parser import extract_new_listings
+from src.bezrealitky.formatter import build_listing_blocks_bez
 
 # AI modul
-from ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
+from src.core.ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
 
 
 class BezWatcher(threading.Thread):

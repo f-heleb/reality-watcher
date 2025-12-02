@@ -1,18 +1,21 @@
+"""
+Sreality.cz Watcher - Background polling thread for monitoring search results.
+"""
 from __future__ import annotations
 
 import threading
 import time
 from typing import Set, Dict, Any, List
-from stats_utils import log_append
 
-from config import DEFAULT_INTERVAL_SEC
+from src.utils.stats_utils import log_append
+from src.core.config import DEFAULT_INTERVAL_SEC
 from slack_sdk.web import WebClient
 
-from slack_utils import (
+from src.utils.slack_utils import (
     slack_post_blocks,
     build_listing_blocks_single,  # nově – jeden listing per message
 )
-from sreality_parser import (
+from src.sreality.parser import (
     extract_new_listings,  # (url, seen_ids, scan_limit, take) -> (new_items, total)
 )
 

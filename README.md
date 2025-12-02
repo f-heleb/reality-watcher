@@ -183,10 +183,10 @@ BEZ_AI_ANALYSIS_ENABLED=0
 | `BEZ_SLACK_APP_TOKEN` | App-level token (Bezrealitky) | *optional* |
 | `OPENAI_API_KEY` | OpenAI API key for AI analysis | *optional* |
 | `DEFAULT_INTERVAL_SEC` | Default polling interval in seconds | `60` |
-| `WATCHERS_JSON` | Path to Sreality watchers configuration | `watchers.json` |
-| `SEEN_STATE_JSON` | Path to Sreality seen state storage | `seen_state.json` |
-| `BEZ_WATCHERS_JSON` | Path to Bezrealitky watchers configuration | `bez_watchers.json` |
-| `BEZ_SEEN_STATE_JSON` | Path to Bezrealitky seen state storage | `bez_seen_state.json` |
+| `WATCHERS_JSON` | Path to Sreality watchers configuration | `config/watchers.json` |
+| `SEEN_STATE_JSON` | Path to Sreality seen state storage | `config/seen_state.json` |
+| `BEZ_WATCHERS_JSON` | Path to Bezrealitky watchers configuration | `config/bez_watchers.json` |
+| `BEZ_SEEN_STATE_JSON` | Path to Bezrealitky seen state storage | `config/bez_seen_state.json` |
 | `BEZ_AI_ANALYSIS_ENABLED` | Enable AI for Bezrealitky (1/0) | `0` |
 
 **Note**: To run both bots simultaneously, you need separate Slack bot tokens for each platform.
@@ -222,15 +222,21 @@ Format: `"<listing_id>:<price>": <last_seen_timestamp>`
 
 ## 🚀 Usage
 
-### Starting the Bot
+### Starting the Bots
 
+**Sreality Bot (main):**
 ```bash
 python run_manager.py
 ```
 
-The bot will:
-1. Load existing watchers from `watchers.json`
-2. Restore seen state from `seen_state.json`
+**Bezrealitky Bot (optional, separate instance):**
+```bash
+python run_bez_manager.py
+```
+
+The bots will:
+1. Load existing watchers from `config/*.json`
+2. Restore seen state with timestamps
 3. Start watcher threads for active channels
 4. Connect to Slack via Socket Mode
 5. Listen for commands and events
@@ -383,58 +389,80 @@ novostavby v této lokalitě...
 
 ```
 reality-watcher/
-├── config.py                 # Centralized configuration
-├── run_manager.py           # Main entry point (Sreality bot)
+├── src/                          # Source code
+│   ├── core/                     # Core functionality
+│   │   ├── __init__.py
+│   │   ├── config.py            # Centralized configuration
+│   │   └── ai_analysis.py       # OpenAI GPT integration
+│   │
+│   ├── utils/                    # Shared utilities
+│   │   ├── __init__.py
+│   │   ├── slack_utils.py       # Slack API utilities
+│   │   └── stats_utils.py       # Logging and statistics
+│   │
+│   ├── sreality/                 # Sreality.cz integration
+│   │   ├── __init__.py
+│   │   ├── manager.py           # Bot manager & commands
+│   │   ├── watcher.py           # Background polling thread
+│   │   └── parser.py            # HTML scraper
+│   │
+│   └── bezrealitky/              # Bezrealitky.cz integration
+│       ├── __init__.py
+│       ├── manager.py           # Bot manager & commands
+│       ├── watcher.py           # Background polling thread
+│       ├── parser.py            # HTML scraper
+│       └── formatter.py         # Slack Block Kit formatter
 │
-├── manager.py               # Sreality bot manager
-├── watcher.py              # Sreality watcher thread
-├── sreality_parser.py      # Sreality HTML parser
+├── config/                       # Configuration files
+│   ├── watchers.json            # Sreality watcher configs
+│   ├── seen_state.json          # Sreality seen state
+│   ├── bez_watchers.json        # Bezrealitky watcher configs
+│   └── bez_seen_state.json      # Bezrealitky seen state
 │
-├── bez_manager.py          # Bezrealitky bot manager (standalone)
-├── bez_watcher.py          # Bezrealitky watcher thread
-├── bez_parser.py           # Bezrealitky HTML parser
-├── bez_formatter.py        # Bezrealitky Slack formatter
+├── logs/                         # TSV logs for statistics
+│   └── sreality_*.tsv           # Per-channel listing logs
 │
-├── slack_utils.py          # Slack API utilities
-├── ai_analysis.py          # OpenAI GPT integration
-├── stats_utils.py          # Logging and statistics
-│
-├── watchers.json           # Watcher configurations
-├── seen_state.json         # Seen listings state
-├── bez_watchers.json       # Bezrealitky watchers
-├── bez_seen_state.json     # Bezrealitky seen state
-│
-├── .env                    # Environment variables (create this)
-└── README.md              # This file
+├── run_manager.py               # Entry point: Sreality bot
+├── run_bez_manager.py           # Entry point: Bezrealitky bot
+├── .env                         # Environment variables (create this)
+├── .gitignore                   # Git ignore rules
+└── README.md                    # This file
 ```
 
-### Key Files
+### Module Responsibilities
 
-- **`config.py`** - Loads environment variables, defines constants
-- **`run_manager.py`** - Bootstraps the Sreality bot, connects to Slack
-- **`manager.py`** - Command handlers, watcher lifecycle management
-- **`watcher.py`** / **`bez_watcher.py`** - Background polling workers
-- **`sreality_parser.py`** / **`bez_parser.py`** - HTML scraping and data extraction
-- **`slack_utils.py`** - Slack Block Kit formatting, API wrappers
-- **`ai_analysis.py`** - OpenAI integration with structured prompts
-- **`stats_utils.py`** - TSV logging and statistics
+**`src/core/`** - Core functionality shared across all platforms
+- `config.py` - Environment variables, constants, path configuration
+- `ai_analysis.py` - OpenAI GPT integration for property analysis
 
-### Architecture Notes
+**`src/utils/`** - Utility modules used by multiple components
+- `slack_utils.py` - Slack API wrappers, Block Kit formatters, DM handling
+- `stats_utils.py` - TSV logging, statistics calculation, data aggregation
 
-**Dual Bot Design**: The project supports two separate bot instances:
-- **Sreality Bot** (`run_manager.py` + `manager.py`) - Main bot for Sreality.cz
-- **Bezrealitky Bot** (`bez_manager.py`) - Standalone bot for Bezrealitky.cz
+**`src/sreality/`** - Complete Sreality.cz bot implementation
+- `manager.py` - Command routing, watcher lifecycle, Socket Mode handler
+- `watcher.py` - Background thread for polling search results
+- `parser.py` - HTML parsing, field extraction, description scraping
 
-To run both platforms:
+**`src/bezrealitky/`** - Complete Bezrealitky.cz bot implementation
+- `manager.py` - Command routing, watcher lifecycle, Socket Mode handler
+- `watcher.py` - Background thread for polling search results
+- `parser.py` - Robust best-effort HTML parsing
+- `formatter.py` - Slack Block Kit formatting specific to Bezrealitky
+
+### Running the Bots
+
+**Sreality Bot:**
 ```bash
-# Terminal 1: Sreality bot
 python run_manager.py
-
-# Terminal 2: Bezrealitky bot (optional)
-python bez_manager.py
 ```
 
-Each bot uses separate configuration files and Slack tokens to avoid conflicts.
+**Bezrealitky Bot (optional):**
+```bash
+python run_bez_manager.py
+```
+
+Both bots can run simultaneously with separate Slack tokens.
 
 ---
 
@@ -498,9 +526,36 @@ Each bot uses separate configuration files and Slack tokens to avoid conflicts.
 
 ## 👨‍💻 Development
 
+### Project Organization
+
+The codebase follows a **modular, platform-segregated architecture**:
+
+```
+Separation of Concerns:
+├── Core (shared)     → Configuration, AI
+├── Utils (shared)    → Slack, Statistics  
+├── Sreality (isolated) → Manager, Watcher, Parser
+└── Bezrealitky (isolated) → Manager, Watcher, Parser, Formatter
+```
+
+**Benefits:**
+- ✅ **Clear boundaries** - Each platform is self-contained
+- ✅ **Easy testing** - Mock individual modules
+- ✅ **Parallel development** - Work on platforms independently
+- ✅ **Shared utilities** - DRY principle for common code
+- ✅ **Import clarity** - `src.platform.module` naming
+
 ### Adding a New Source
 
-1. Create `<source>_parser.py`:
+To add support for a new real estate portal (e.g., `reality.cz`):
+
+1. **Create platform folder:**
+   ```bash
+   mkdir src/reality
+   touch src/reality/__init__.py
+   ```
+
+2. **Create `src/reality/parser.py`:**
    ```python
    def extract_new_listings(url, seen_ids, scan_limit, take):
        # Scrape and return (new_items, total_found)
@@ -511,23 +566,36 @@ Each bot uses separate configuration files and Slack tokens to avoid conflicts.
        pass
    ```
 
-2. Create `<source>_watcher.py`:
+3. **Create `src/reality/watcher.py`:**
    ```python
-   class SourceWatcher(threading.Thread):
+   from src.utils.slack_utils import slack_post_blocks
+   from src.reality.parser import extract_new_listings
+   
+   class Watcher(threading.Thread):
        def run(self):
-           # Polling loop
+           # Polling loop implementation
            pass
    ```
 
-3. Create `<source>_manager.py`:
+4. **Create `src/reality/manager.py`:**
    ```python
+   from src.reality.watcher import Watcher
+   
    class BotManager:
        def handle_command(self, channel_id, user_id, text):
-           # Command routing
+           # Command routing (add, remove, list, etc.)
            pass
    ```
 
-4. Add configuration in `.env` and create separate JSON state files
+5. **Create `run_reality_manager.py`** in project root
+
+6. **Add configuration** in `.env`:
+   ```env
+   REALITY_SLACK_BOT_TOKEN=xoxb-...
+   REALITY_SLACK_APP_TOKEN=xapp-...
+   ```
+
+7. **Update `.gitignore`** if needed for platform-specific configs
 
 ### Running Tests
 

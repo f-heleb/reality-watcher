@@ -1,5 +1,8 @@
 # bez_manager.py
 # -*- coding: utf-8 -*-
+"""
+Bezrealitky.cz Bot Manager - Handles Slack commands and watcher lifecycle.
+"""
 from __future__ import annotations
 
 import os
@@ -13,7 +16,7 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-from ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
+from src.core.ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
 from slack_sdk.web import WebClient
 from slack_sdk.socket_mode import SocketModeClient
 from slack_sdk.socket_mode.request import SocketModeRequest
@@ -26,11 +29,11 @@ BEZ_SLACK_APP_TOKEN = os.environ.get("BEZ_SLACK_APP_TOKEN", "").strip()
 DEFAULT_INTERVAL_SEC = int(os.environ.get("DEFAULT_INTERVAL_SEC", "60"))
 
 # dedikované soubory, ať se to nemíchá se Sreality
-CONFIG_PATH = os.environ.get("BEZ_WATCHERS_JSON", "bez_watchers.json")
-STATE_PATH  = os.environ.get("BEZ_SEEN_STATE_JSON", "bez_seen_state.json")
+CONFIG_PATH = os.environ.get("BEZ_WATCHERS_JSON", "config/bez_watchers.json")
+STATE_PATH  = os.environ.get("BEZ_SEEN_STATE_JSON", "config/bez_seen_state.json")
 
 # --- lokální utility (sdílené s Sreality verzí) ---
-from slack_utils import (
+from src.utils.slack_utils import (
     slack_post_text,
     slack_post_blocks,
     invite_users_to_channel,
@@ -40,12 +43,12 @@ from slack_utils import (
 )
 
 # BezRealitky parser (samostatný, NEROZBIJÍ Sreality)
-from bez_parser import fetch_page, extract_new_listings
+from src.bezrealitky.parser import fetch_page, extract_new_listings
 
 # Pro běžící smyčku použijeme speciální watcher pro BezRealitky
 # Pokud ho ještě nemáš, můžeš dočasně běžet jen na první dávce (viz _send_initial_batch).
 try:
-    from bez_watcher import Watcher as BezWatcher, MemoryStateRepo as BezMemoryStateRepo
+    from src.bezrealitky.watcher import Watcher as BezWatcher, MemoryStateRepo as BezMemoryStateRepo
     HAVE_BEZ_WATCHER = True
 except Exception:
     HAVE_BEZ_WATCHER = False

@@ -1,29 +1,35 @@
-# run_manager.py
+# run_bez_manager.py
 # -*- coding: utf-8 -*-
 """
-Main entry point for Sreality.cz watcher bot.
+Main entry point for Bezrealitky.cz watcher bot.
 """
 from __future__ import annotations
 import time
 import logging
 from dotenv import load_dotenv
+
+# Load .env first
+load_dotenv()
+
 from slack_sdk.web import WebClient
 from slack_sdk.socket_mode import SocketModeClient
 
-from src.core.config import (
-    SLACK_BOT_TOKEN,
-    SLACK_APP_TOKEN,
-    DEFAULT_INTERVAL_SEC,
+from src.bezrealitky.manager import (
+    BotManager,
+    socket_mode_handler,
+    JsonStateRepo,
+    BEZ_SLACK_BOT_TOKEN,
+    BEZ_SLACK_APP_TOKEN,
     CONFIG_PATH,
     STATE_PATH,
+    DEFAULT_INTERVAL_SEC,
 )
-from src.sreality.manager import BotManager, socket_mode_handler, JsonStateRepo
 
 # -----------------------------------------------------
 # Boot logging
 # -----------------------------------------------------
-print("BOT=", SLACK_BOT_TOKEN)
-print("APP=", SLACK_APP_TOKEN)
+print("BEZ_BOT=", BEZ_SLACK_BOT_TOKEN)
+print("BEZ_APP=", BEZ_SLACK_APP_TOKEN)
 print("[boot] Using watchers file:", CONFIG_PATH)
 print("[boot] Using seen-state file:", STATE_PATH)
 
@@ -32,14 +38,11 @@ print(
     f"CONFIG_PATH = {CONFIG_PATH} | STATE_PATH = {STATE_PATH}"
 )
 
-# load .env
-load_dotenv()
-
 # Slack clients
-web = WebClient(token=SLACK_BOT_TOKEN)
-socket = SocketModeClient(app_token=SLACK_APP_TOKEN, web_client=web)
+web = WebClient(token=BEZ_SLACK_BOT_TOKEN)
+socket = SocketModeClient(app_token=BEZ_SLACK_APP_TOKEN, web_client=web)
 
-# state repo (JSON s TTL logikou uvnitř manager.JsonStateRepo)
+# state repo (JSON s TTL logikou)
 state_repo = JsonStateRepo(path=STATE_PATH)
 
 # -----------------------------------------------------
@@ -66,7 +69,7 @@ socket.socket_mode_request_listeners.append(socket_mode_handler(bot))
 # Connect
 # -----------------------------------------------------
 socket.connect()
-print("✅ Sreality Manager running. Type 'ping' in any channel to test events.")
+print("✅ Bezrealitky Manager running. Type 'ping' in any channel to test events.")
 
 # -----------------------------------------------------
 # Keep alive
