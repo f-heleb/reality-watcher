@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reality Watcher – přehled nabídek</title>
+
+  <!-- Favicon – house icon in brand green -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23575A6C'/><path d='M16 6 L28 16 L25 16 L25 27 L19 27 L19 20 L13 20 L13 27 L7 27 L7 16 L4 16 Z' fill='%23B4C540'/></svg>" />
+
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="header-logo">
+    <!-- Logo icon: house SVG -->
+    <svg class="header-logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#B4C540" fill-opacity="0.15"/>
+      <path d="M20 7L34 19H30V34H23V26H17V34H10V19H6L20 7Z" fill="#B4C540"/>
+    </svg>
+    <div class="header-logo-text">
+      <span class="app-title">Reality Watcher</span>
+      <span class="app-subtitle">Sledování nabídek nemovitostí</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span id="listing-count" class="listing-count"></span>
+    <button class="btn btn-primary" id="btn-add-config">+ Přidat sledování</button>
+    <button class="btn btn-ghost" id="btn-manage-configs">Správa zdrojů</button>
+  </div>
+</header>
+
+<!-- ── MAIN LAYOUT ────────────────────────────────────────────────────── -->
+<div class="app-body" id="app-body">
+
+  <!-- LEFT: Filters -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Dispozice</h3>
+      <div id="filter-dispo" class="checkbox-group"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Lokalita</h3>
+      <input type="text" id="locality-search" class="input-sm" placeholder="Hledat lokalitu…" />
+      <div id="filter-locality" class="checkbox-group scrollable" style="margin-top:6px"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Cena (Kč)</h3>
+      <div class="range-row">
+        <input type="number" id="price-min" class="input-sm" placeholder="Od" step="50000" />
+        <span>–</span>
+        <input type="number" id="price-max" class="input-sm" placeholder="Do" step="50000" />
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Plocha (m²)</h3>
+      <div class="range-row">
+        <input type="number" id="area-min" class="input-sm" placeholder="Od" />
+        <span>–</span>
+        <input type="number" id="area-max" class="input-sm" placeholder="Do" />
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Seřadit</h3>
+      <select id="sort-select" class="input-sm full-width">
+        <option value="newest">Nejnovější</option>
+        <option value="oldest">Nejstarší</option>
+        <option value="price_asc">Cena ↑</option>
+        <option value="price_desc">Cena ↓</option>
+        <option value="area_asc">Plocha ↑</option>
+        <option value="area_desc">Plocha ↓</option>
+        <option value="price_m2_asc">Kč/m² ↑</option>
+        <option value="price_m2_desc">Kč/m² ↓</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-heading">Hledat v textu</h3>
+      <input type="text" id="text-search" class="input-sm full-width" placeholder="Klíčové slovo…" />
+    </div>
+
+    <button class="btn btn-ghost-dark full-width" id="btn-reset-filters" style="margin-top:8px">Zrušit filtry</button>
+  </aside>
+
+  <!-- Drag handle: sidebar ↔ middle -->
+  <div class="drag-handle" id="drag-left"></div>
+
+  <!-- MIDDLE: Tabs + Listing list -->
+  <div class="listing-list-wrapper" id="listing-list-wrapper">
+    <!-- Watcher tabs -->
+    <div class="watcher-tabs" id="watcher-tabs"></div>
+
+    <div class="listing-list" id="listing-list">
+      <div class="empty-state" id="empty-state">
+        <p>Žádné inzeráty nenalezeny.</p>
+        <p class="hint">Přidejte sledovanou URL přes tlačítko „Přidat sledování".</p>
+      </div>
+      <div id="listing-cards"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+  <!-- Drag handle: middle ↔ detail -->
+  <div class="drag-handle" id="drag-right"></div>
+
+  <!-- RIGHT: Detail panel -->
+  <section class="detail-panel" id="detail-panel">
+    <div class="detail-placeholder" id="detail-placeholder">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <path d="M24 6L42 21H37V43H29V32H19V43H11V21H6L24 6Z" fill="currentColor"/>
+      </svg>
+      <p>Klikněte na inzerát pro zobrazení detailu.</p>
+    </div>
+    <div id="detail-content" class="hidden"></div>
+  </section>
+
+</div>
+
+<!-- ── MODAL: Add search config ───────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-add-config">
+  <div class="modal">
+    <h2>Přidat sledování URL</h2>
+    <label>Název <input type="text" id="cfg-name" class="input-full" placeholder="např. Praha 2+kk do 3M" /></label>
+    <label>URL Sreality <input type="text" id="cfg-url" class="input-full" placeholder="https://www.sreality.cz/hledani/…" /></label>
+    <label>Interval (sekundy) <input type="number" id="cfg-interval" class="input-full" value="300" min="60" /></label>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-cfg-save">Uložit</button>
+      <button class="btn btn-ghost-dark" id="btn-cfg-cancel">Zrušit</button>
+    </div>
+    <p id="cfg-error" class="error-msg hidden"></p>
+  </div>
+</div>
+
+<!-- ── MODAL: Manage configs ──────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-manage-configs">
+  <div class="modal modal-wide">
+    <h2>Správa sledovaných zdrojů</h2>
+    <div id="config-list-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost-dark" id="btn-manage-close">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

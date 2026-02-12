@@ -20,7 +20,7 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
 from src.core.config import DEFAULT_INTERVAL_SEC, CONFIG_PATH, STATE_PATH
-from src.sreality.watcher import Watcher, MemoryStateRepo
+from src.sreality.watcher import Watcher
 from src.utils.slack_utils import (
     slack_post_text,
     invite_users_to_channel,

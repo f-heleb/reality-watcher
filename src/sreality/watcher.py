@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Set, Dict, Any, List
+from typing import Set, Any
 
 from src.utils.stats_utils import log_append
 from src.core.config import DEFAULT_INTERVAL_SEC
@@ -164,18 +164,3 @@ class Watcher(threading.Thread):
                     break
                 time.sleep(1)
 
-
-# --- Minimal in-memory state repo (optional) ---------------------------------
-
-
-class MemoryStateRepo:
-    """Simple non-persistent store for seen IDs per key (channel_id / short)."""
-
-    def __init__(self):
-        self._db: Dict[str, Set[str]] = {}
-
-    def get_seen(self, channel_id: str) -> List[str]:
-        return list(self._db.get(channel_id, set()))
-
-    def save_seen(self, channel_id: str, seen_sorted: List[str]) -> None:
-        self._db[channel_id] = set(seen_sorted)

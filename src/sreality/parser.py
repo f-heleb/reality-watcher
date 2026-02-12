@@ -25,7 +25,13 @@ BASE_DOMAIN = "https://www.sreality.cz"
 NBSP = u"\u00A0"
 
 # Heuristiky pro tahání čísel z titulku
-PRICE_RE = re.compile(r"([\d\s" + NBSP + r"]+)\s*Kč", re.IGNORECASE)
+# Matches: "2 000 000 Kč", "1\u00A0500\u00A0000 Kč" or bare "2000000 Kč"
+# Requires thousand-separator groups of exactly 3 digits so "Praha 5 2 000 000 Kč"
+# correctly extracts 2 000 000 (not 52 000 000).
+PRICE_RE = re.compile(
+    r"(\d{1,3}(?:[\s" + NBSP + r"\u202F]\d{3})+|\d{4,})\s*Kč",
+    re.IGNORECASE,
+)
 AREA_RE  = re.compile(r"(\d+(?:[.,]\d+)?)\s*m[²2]", re.IGNORECASE)
 DISPO_RE = re.compile(r"\b(\d+\s*\+\s*(?:kk|1|2|3|4|5))\b", re.IGNORECASE)
 
@@ -205,6 +211,11 @@ def extract_description_from_text(text_block: str) -> str:
     def is_paragraph_start(l: str) -> bool:
         return len(l) > 30 and any(c.islower() for c in l)
 
+    def is_noise_line(l: str) -> bool:
+        """True for digit-only lines that come from price rendering artifacts."""
+        stripped = l.replace(" ", "").replace(NBSP, "").replace("\u202F", "").replace(",", "").replace(".", "")
+        return bool(stripped) and stripped.isdigit() and len(l) <= 15
+
     description_lines = []
     started = False
 
@@ -212,12 +223,20 @@ def extract_description_from_text(text_block: str) -> str:
         if not l:
             continue
 
-        # hvězdičkový oddělovač – často konec „lidského“ textu
+        # hvězdičkový oddělovač – často konec „lidského" textu
         if "* * *" in l and started:
             break
 
         # tvrdý stop pro technické informace (kdyby se do bloku dostaly)
-        if l.startswith(("Cena:", "Stavba:", "Stav objektu:", "Podlaží:")) and started:
+        # "Cena" often appears as a standalone line (without colon) on Sreality
+        _STOP = (
+            "Cena", "Poznámka k ceně", "Příslušenství",
+            "Energetická náročnost", "Stavba:", "Stav objektu:",
+            "Podlaží:", "Plocha:", "Celková plocha", "Užitná plocha",
+            "Lokalita:", "Vlastnictví:", "Ostatní:", "Zobrazeno:",
+            "Vloženo:", "Upraveno:", "ID zakázky",
+        )
+        if l.startswith(_STOP) and started:
             break
 
         if not started:
@@ -225,6 +244,9 @@ def extract_description_from_text(text_block: str) -> str:
                 started = True
                 description_lines.append(l)
         else:
+            # skip digit-only noise lines (price rendered as individual spans)
+            if is_noise_line(l):
+                continue
             description_lines.append(l)
 
     return "\n".join(description_lines).strip()

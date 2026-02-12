@@ -232,12 +232,9 @@ def send_listing_analysis_dm(
     analysis = call_chatgpt_for_listing(listing)
     text = format_analysis_for_slack(analysis, listing)
 
-    print("ANALYSIS_TEXT:\n", text)  # DEBUG – můžeš klidně pak smazat
-
     # 2) otevřít / získat DM kanál s uživatelem
     dm_resp = client.conversations_open(users=[user_id])
     dm_channel = dm_resp["channel"]["id"]
-    print("DM_CHANNEL_ID:", dm_channel)  # DEBUG
 
     # 3) poslat zprávu do DM kanálu
     client.chat_postMessage(
