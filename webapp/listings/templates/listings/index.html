@@ -26,10 +26,17 @@
       <span class="app-subtitle">Sledování nabídek nemovitostí</span>
     </div>
   </div>
+  <nav class="header-nav">
+    <a href="/" class="header-nav-link active">Sledování</a>
+    <a href="/properties/" class="header-nav-link">Moje nemovitosti</a>
+  </nav>
   <div class="header-actions">
     <span id="listing-count" class="listing-count"></span>
-    <button class="btn btn-primary" id="btn-add-config">+ Přidat sledování</button>
     <button class="btn btn-ghost" id="btn-manage-configs">Správa zdrojů</button>
+    <form method="post" action="{% url 'logout' %}" style="margin:0">
+      {% csrf_token %}
+      <button class="btn btn-ghost" type="submit">Odhlásit</button>
+    </form>
   </div>
 </header>
 
@@ -41,12 +48,6 @@
     <div class="sidebar-section">
       <h3 class="sidebar-heading">Dispozice</h3>
       <div id="filter-dispo" class="checkbox-group"></div>
-    </div>
-
-    <div class="sidebar-section">
-      <h3 class="sidebar-heading">Lokalita</h3>
-      <input type="text" id="locality-search" class="input-sm" placeholder="Hledat lokalitu…" />
-      <div id="filter-locality" class="checkbox-group scrollable" style="margin-top:6px"></div>
     </div>
 
     <div class="sidebar-section">

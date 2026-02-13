@@ -52,7 +52,7 @@ HEADERS = {
 def _clean_int(s: str):
     if not s:
         return None
-    s = s.replace(NBSP, "").replace(" ", "").replace("\u202F", "").replace(",", "")
+    s = s.replace(NBSP, "").replace("\u200B", "").replace(" ", "").replace("\u202F", "").replace(",", "")
     try:
         return int(s)
     except Exception:

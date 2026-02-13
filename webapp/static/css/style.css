@@ -22,7 +22,7 @@
   --shadow:    0 1px 3px rgba(0,0,0,.09), 0 1px 2px rgba(0,0,0,.05);
   --shadow-md: 0 4px 8px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
   --sidebar-w:  260px;
-  --detail-w:   400px;
+  --detail-w:   520px;
   --header-h:   70px;
 }
 
@@ -121,6 +121,14 @@ a:hover { text-decoration: underline; }
   border-radius: 10px; font-size: 10px; font-weight: 700;
   padding: 0 5px; margin-left: 4px;
 }
+.tab-add {
+  font-size: 16px; font-weight: 400; color: var(--text-muted);
+  border: 1px dashed var(--border) !important; border-bottom: none !important;
+  border-radius: 6px 6px 0 0; padding: 3px 12px; margin-left: 4px;
+}
+.tab-add:hover { color: var(--primary); border-color: var(--primary) !important; background: var(--bg); }
+.tab-properties { margin-left: auto; color: var(--accent); }
+.tab-properties:hover { background: rgba(54,134,201,.08); color: var(--accent); }
 
 .listing-list { flex: 1 1 0; overflow-y: auto; padding: 10px; }
 
@@ -158,7 +166,7 @@ a:hover { text-decoration: underline; }
 /* ─── Detail panel ──────────────────────────────────────────────────────── */
 .detail-panel {
   flex: 0 0 var(--detail-w); width: var(--detail-w);
-  min-width: 260px; max-width: 700px;
+  min-width: 260px; max-width: 860px;
   overflow-y: auto;
   border-left: 1px solid var(--border);
   background: var(--surface);
@@ -193,7 +201,7 @@ a:hover { text-decoration: underline; }
 .detail-link { display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 12px; font-size: 13px; }
 .detail-section { margin-top: 14px; }
 .detail-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--header-bg); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-.detail-description { font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+.detail-description { font-size: 13px; line-height: 1.7; color: var(--text); }
 .btn-analyze { margin-top: 14px; width: 100%; }
 
 /* AI analysis */
@@ -269,6 +277,27 @@ a:hover { text-decoration: underline; }
 .contact-value { color: var(--text); }
 .contact-value a { color: var(--accent); font-weight: 600; }
 .contact-value a:hover { text-decoration: underline; }
+
+/* ─── Header nav ────────────────────────────────────────────────────────── */
+.header-nav {
+  display: flex; align-items: center; gap: 4px;
+  border-left: 1px solid rgba(255,255,255,.15);
+  border-right: 1px solid rgba(255,255,255,.15);
+  padding: 0 18px; margin: 0 8px;
+}
+.header-nav-link {
+  padding: 8px 18px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 700; text-decoration: none;
+  color: rgba(224,226,210,.80);
+  transition: background .15s, color .15s;
+  letter-spacing: .1px;
+}
+.header-nav-link:hover { background: rgba(255,255,255,.12); color: #fff; text-decoration: none; }
+.header-nav-link.active {
+  background: rgba(180,197,64,.25);
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(180,197,64,.35);
+}
 
 /* Utility */
 .hidden { display: none !important; }

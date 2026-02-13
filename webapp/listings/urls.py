@@ -17,4 +17,11 @@ urlpatterns = [
     path("api/search-configs/", views.SearchConfigListView.as_view(), name="search-config-list"),
     path("api/search-configs/<int:pk>/", views.SearchConfigDetailView.as_view(), name="search-config-detail"),
     path("api/search-configs/<int:pk>/scrape-now/", views.SearchConfigScrapeNowView.as_view(), name="search-config-scrape-now"),
+
+    # Owned properties
+    path("properties/", views.PropertiesView.as_view(), name="properties"),
+    path("api/owned-properties/", views.OwnedPropertyListView.as_view(), name="owned-property-list"),
+    path("api/owned-properties/<int:pk>/", views.OwnedPropertyDetailView.as_view(), name="owned-property-detail"),
+    path("api/owned-properties/<int:pk>/upload-photo/", views.OwnedPropertyPhotoUploadView.as_view(), name="owned-property-upload-photo"),
+    path("api/owned-properties/<int:pk>/estimate/", views.OwnedPropertyPriceEstimateView.as_view(), name="owned-property-estimate"),
 ]

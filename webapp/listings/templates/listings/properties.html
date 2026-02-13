@@ -1,0 +1,717 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reality Watcher – Moje nemovitosti</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23575A6C'/><path d='M16 6 L28 16 L25 16 L25 27 L19 27 L19 20 L13 20 L13 27 L7 27 L7 16 L4 16 Z' fill='%23B4C540'/></svg>" />
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ── 2-pane layout ── */
+    .props-body {
+      display: flex; height: calc(100vh - var(--header-h));
+      margin-top: var(--header-h); overflow: hidden;
+    }
+
+    /* Left: property list */
+    .props-list-pane {
+      flex: 0 0 300px; width: 300px; min-width: 200px; max-width: 500px;
+      display: flex; flex-direction: column;
+      background: var(--surface-alt); border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .props-list-toolbar {
+      padding: 14px 14px 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .props-list-toolbar h2 { font-size: 14px; font-weight: 800; color: var(--header-bg); flex: 1; }
+    .props-list-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+    .props-empty-list { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13px; }
+
+    /* Property card in the list */
+    .prop-list-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      border-radius: var(--radius); padding: 10px 12px; margin-bottom: 6px;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .prop-list-card:hover { border-left-color: var(--primary); box-shadow: var(--shadow); }
+    .prop-list-card.active { border-left-color: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 2px rgba(180,197,64,.2); }
+    .plc-thumb { width: 100%; height: 100px; border-radius: 5px; overflow: hidden; background: #2d2f3a; margin-bottom: 8px; }
+    .plc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .plc-thumb .no-img { height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.2); font-size: 11px; }
+    .plc-name { font-weight: 700; font-size: 13px; color: var(--header-bg); margin-bottom: 2px; }
+    .plc-addr { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plc-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+    .plc-badge { border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+    .b-green  { background: rgba(180,197,64,.2); color: #4a5a00; }
+    .b-red    { background: rgba(224,82,82,.12); color: #c01; }
+    .b-blue   { background: rgba(54,134,201,.12); color: #1a5c99; }
+    .b-grey   { background: var(--bg); color: var(--text-muted); }
+
+    /* Right: dashboard */
+    .props-dash-pane {
+      flex: 1 1 0; min-width: 0; overflow-y: auto;
+      background: var(--bg);
+    }
+    .dash-placeholder {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; color: var(--text-muted); text-align: center;
+    }
+    .dash-placeholder svg { opacity: .15; }
+
+    /* Dashboard content */
+    .dash-gallery { position: relative; background: #1a1c22; flex-shrink: 0; max-height: 400px; overflow: hidden; }
+    .dash-gallery img { width: 100%; max-height: 400px; object-fit: cover; display: block; }
+    .dash-gallery .no-img { height: 200px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.2); font-size: 13px; }
+    .dash-gallery .gallery-counter { position: absolute; bottom: 10px; right: 12px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; border-radius: 10px; padding: 3px 10px; }
+
+    .dash-header { background: var(--surface); padding: 20px 24px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .dash-title { font-size: 22px; font-weight: 800; color: var(--header-bg); }
+    .dash-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .dash-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .dash-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 22px; }
+
+    /* Section */
+    .dash-section { }
+    .dash-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--header-bg); margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+
+    /* Finance grid */
+    .fin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .fin-item { background: var(--surface); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); }
+    .fin-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 4px; }
+    .fin-value { font-size: 16px; font-weight: 800; color: var(--header-bg); }
+    .fin-value.positive { color: #2a6b3a; }
+    .fin-value.negative { color: var(--red); }
+    .fin-value.highlight { color: var(--primary); font-size: 20px; }
+    .fin-value.accent { color: var(--accent); }
+
+    /* Chart */
+    .chart-box { background: var(--surface); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); }
+    .chart-canvas-wrap { position: relative; height: 180px; }
+
+    /* Map */
+    .prop-map { height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .map-loading { height: 280px; border-radius: 10px; background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px solid var(--border); }
+
+    /* Estimate */
+    .estimate-box { background: rgba(54,134,201,.06); border: 1px solid rgba(54,134,201,.2); border-radius: 10px; padding: 14px 16px; }
+    .estimate-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .estimate-item { background: var(--surface); border-radius: 8px; padding: 10px 12px; }
+    .estimate-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 3px; }
+    .estimate-value { font-size: 15px; font-weight: 800; color: var(--accent); }
+    .sim-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .sim-list { display: flex; flex-direction: column; gap: 5px; }
+    .sim-item { background: var(--surface); border-radius: 6px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; font-size: 12px; border: 1px solid var(--border); }
+    .sim-info { flex: 1; min-width: 0; }
+    .sim-loc { color: var(--text-muted); font-size: 11px; }
+    .sim-price { font-weight: 700; color: var(--header-bg); white-space: nowrap; }
+    .sim-pm2 { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .sim-link { color: var(--accent); font-size: 11px; flex-shrink: 0; }
+
+    /* Photos */
+    .photo-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .photo-thumb { position: relative; width: 80px; height: 80px; border-radius: 7px; overflow: hidden; }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-thumb-del { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,.65); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: border-color .15s; background: var(--surface); }
+    .upload-zone:hover { border-color: var(--primary); }
+    .upload-zone input { display: none; }
+    .upload-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Edit form modal */
+    .form-modal-overlay {
+      position: fixed; inset: 0; background: rgba(30,32,42,.6);
+      display: flex; align-items: flex-start; justify-content: center;
+      z-index: 300; padding: 24px; overflow-y: auto;
+      backdrop-filter: blur(3px);
+    }
+    .form-modal {
+      background: var(--surface); border-radius: 14px;
+      width: min(96vw, 700px); box-shadow: 0 24px 60px rgba(0,0,0,.3);
+      margin: auto;
+    }
+    .form-modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+    .form-modal-title { font-size: 17px; font-weight: 800; color: var(--header-bg); }
+    .form-modal-body { padding: 18px 24px 24px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-grid .full { grid-column: 1/-1; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .form-group input, .form-group textarea, .form-group select {
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 7px 10px; font-size: 13px; outline: none;
+      background: var(--surface); color: var(--text); font-family: inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--primary); }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="header-logo">
+    <svg class="header-logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="#B4C540" fill-opacity="0.15"/>
+      <path d="M20 7L34 19H30V34H23V26H17V34H10V19H6L20 7Z" fill="#B4C540"/>
+    </svg>
+    <div class="header-logo-text">
+      <span class="app-title">Reality Watcher</span>
+      <span class="app-subtitle">Moje nemovitosti</span>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="/" class="header-nav-link">Sledování</a>
+    <a href="/properties/" class="header-nav-link active">Moje nemovitosti</a>
+  </nav>
+  <div class="header-actions">
+    <form method="post" action="{% url 'logout' %}" style="margin:0">
+      {% csrf_token %}
+      <button class="btn btn-ghost" type="submit">Odhlásit</button>
+    </form>
+  </div>
+</header>
+
+<!-- 2-pane body -->
+<div class="props-body">
+
+  <!-- LEFT: property list -->
+  <div class="props-list-pane" id="props-list-pane">
+    <div class="props-list-toolbar">
+      <h2>Nemovitosti</h2>
+      <button class="btn btn-primary btn-sm" id="btn-add-prop">＋ Přidat</button>
+    </div>
+    <div class="props-list-scroll" id="props-list-scroll">
+      <div class="props-empty-list" id="props-empty-list" style="display:none">
+        Žádné nemovitosti.<br>Přidejte první.
+      </div>
+    </div>
+  </div>
+
+  <!-- Drag handle -->
+  <div class="drag-handle" id="drag-props"></div>
+
+  <!-- RIGHT: dashboard -->
+  <div class="props-dash-pane" id="props-dash-pane">
+    <div class="dash-placeholder" id="dash-placeholder">
+      <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
+        <path d="M24 6L42 21H37V43H29V32H19V43H11V21H6L24 6Z" fill="currentColor"/>
+      </svg>
+      <p>Vyberte nemovitost ze seznamu vlevo.</p>
+    </div>
+    <div id="dash-content" class="hidden"></div>
+  </div>
+
+</div>
+
+<!-- Edit / Add modal -->
+<div class="form-modal-overlay hidden" id="form-modal">
+  <div class="form-modal" id="form-modal-inner"></div>
+</div>
+
+<script>
+"use strict";
+
+const DISPO_OPTIONS = ["1+kk","1+1","2+kk","2+1","3+kk","3+1","4+kk","4+1","5+kk","5+1","6 a více pokojů","Atypické"];
+
+function fmtCzk(n) { return n == null ? "–" : Number(n).toLocaleString("cs-CZ") + " Kč"; }
+function fmtM(n)   { return n == null ? "–" : Number(n).toLocaleString("cs-CZ") + " Kč/měs."; }
+function esc(s) { return s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function getCsrf() {
+  for (const c of document.cookie.split(";")) {
+    const [k,v] = c.trim().split("=");
+    if (k === "csrftoken") return decodeURIComponent(v);
+  }
+  return "";
+}
+async function api(url, opts={}) {
+  const res = await fetch(url, { headers: {"X-CSRFToken": getCsrf(), ...opts.headers}, ...opts });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error || res.statusText); }
+  return res.json();
+}
+
+let _props = [];
+let _activePropId = null;
+let _galleryIdx   = 0;
+let _leafletMap   = null;
+let _cfChart      = null;
+
+/* ── Init ── */
+async function loadProps() {
+  const data = await api("/api/owned-properties/");
+  _props = data.results;
+  renderList();
+  // Re-render dashboard if currently shown property was updated
+  if (_activePropId) {
+    const p = _props.find(p => p.id === _activePropId);
+    if (p) renderDashboard(p);
+    else showPlaceholder();
+  }
+}
+
+function renderList() {
+  const scroll = document.getElementById("props-list-scroll");
+  const empty  = document.getElementById("props-empty-list");
+  if (!_props.length) {
+    empty.style.display = "";
+    scroll.innerHTML = "";
+    scroll.appendChild(empty);
+    return;
+  }
+  empty.style.display = "none";
+  scroll.innerHTML = _props.map(p => {
+    const thumb = p.photos && p.photos.length
+      ? `<img src="${esc(p.photos[0])}" onerror="this.parentElement.innerHTML='<div class=no-img>Bez fotek</div>'">`
+      : `<div class="no-img">Bez fotek</div>`;
+    const roiB  = p.roi != null ? `<span class="plc-badge ${p.roi >= 0 ? 'b-green' : 'b-red'}">ROI ${p.roi > 0?'+':''}${p.roi}%</span>` : "";
+    const cfB   = p.cashflow != null ? `<span class="plc-badge ${p.cashflow >= 0 ? 'b-blue' : 'b-red'}">CF ${p.cashflow >= 0?'+':''}${Number(p.cashflow).toLocaleString('cs-CZ')} Kč</span>` : "";
+    const dispoB = p.dispo ? `<span class="plc-badge b-grey">${esc(p.dispo)}</span>` : "";
+    const active = p.id === _activePropId ? "active" : "";
+    return `<div class="prop-list-card ${active}" data-id="${p.id}">
+      <div class="plc-thumb">${thumb}</div>
+      <div class="plc-name">${esc(p.name)}</div>
+      <div class="plc-addr">${esc(p.address || "")}</div>
+      <div class="plc-badges">${dispoB}${roiB}${cfB}</div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".prop-list-card").forEach(c =>
+    c.addEventListener("click", () => selectProp(Number(c.dataset.id)))
+  );
+}
+
+function selectProp(id) {
+  _activePropId = id;
+  _galleryIdx = 0;
+  document.querySelectorAll(".prop-list-card").forEach(c =>
+    c.classList.toggle("active", Number(c.dataset.id) === id)
+  );
+  const p = _props.find(p => p.id === id);
+  if (p) renderDashboard(p);
+}
+
+function showPlaceholder() {
+  document.getElementById("dash-placeholder").classList.remove("hidden");
+  document.getElementById("dash-content").classList.add("hidden");
+}
+
+/* ── Dashboard rendering ── */
+function renderDashboard(p) {
+  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
+  if (_cfChart)    { _cfChart.destroy(); _cfChart = null; }
+  document.getElementById("dash-placeholder").classList.add("hidden");
+  const content = document.getElementById("dash-content");
+  content.classList.remove("hidden");
+  content.innerHTML = buildDashboardHTML(p);
+  attachDashEvents(p);
+  if ((p.monthly_mortgage != null || p.monthly_fee != null || p.monthly_rent != null)) {
+    renderCashflowChart(p);
+  }
+  if (p.address && p.address.trim()) renderMap(p.address);
+}
+
+function buildDashboardHTML(p) {
+  const photos = p.photos || [];
+  const galleryHTML = buildGallery(photos);
+
+  const roiVal  = p.roi != null ? `${p.roi > 0?'+':''}${p.roi} %` : "–";
+  const roiCls  = p.roi == null ? "" : (p.roi >= 0 ? "positive" : "negative");
+  const roiAnVal = p.roi_annual != null ? `${p.roi_annual > 0?'+':''}${p.roi_annual} % / rok` : null;
+  const cfVal   = p.cashflow != null ? `${p.cashflow >= 0?'+':''}${Number(p.cashflow).toLocaleString("cs-CZ")} Kč/měs.` : "–";
+  const cfCls   = p.cashflow == null ? "" : (p.cashflow >= 0 ? "positive" : "negative");
+
+  const yearsStr = p.years_held ? `${p.years_held} let` : null;
+  const purchaseStr = p.purchase_date ? (() => {
+    const d = new Date(p.purchase_date);
+    return d.toLocaleDateString("cs-CZ");
+  })() : null;
+
+  const subParts = [p.address, p.dispo, p.area_m2 ? p.area_m2 + " m²" : null].filter(Boolean);
+
+  return `
+    ${galleryHTML}
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">${esc(p.name)}</div>
+        ${subParts.length ? `<div class="dash-sub">${subParts.map(esc).join(" · ")}</div>` : ""}
+        ${purchaseStr ? `<div class="dash-sub" style="margin-top:2px">Koupeno: ${purchaseStr}${yearsStr ? " (" + yearsStr + " vlastnictví)" : ""}</div>` : ""}
+      </div>
+      <div class="dash-actions">
+        <button class="btn btn-secondary btn-sm" id="dash-btn-edit">Upravit</button>
+        <button class="btn btn-danger btn-sm" id="dash-btn-delete">Smazat</button>
+      </div>
+    </div>
+
+    <div class="dash-body">
+
+      ${p.description ? `<div class="dash-section">
+        <div class="dash-section-title">Popis</div>
+        <p style="font-size:13px;line-height:1.7;color:var(--text)">${esc(p.description).replace(/\n/g,"<br>")}</p>
+      </div>` : ""}
+
+      <div class="dash-section">
+        <div class="dash-section-title">Finance</div>
+        <div class="fin-grid">
+          <div class="fin-item"><div class="fin-label">Pořizovací cena</div><div class="fin-value">${fmtCzk(p.purchase_price)}</div></div>
+          <div class="fin-item"><div class="fin-label">Aktuální hodnota</div><div class="fin-value">${fmtCzk(p.current_value)}</div></div>
+          <div class="fin-item"><div class="fin-label">Celkem investováno</div><div class="fin-value">${fmtCzk(p.total_invested)}</div></div>
+          <div class="fin-item"><div class="fin-label">ROI (celkem)</div><div class="fin-value ${roiCls} highlight">${roiVal}</div></div>
+          ${roiAnVal ? `<div class="fin-item"><div class="fin-label">Roční výnos (CAGR)</div><div class="fin-value ${roiCls} accent">${esc(roiAnVal)}</div></div>` : ""}
+          <div class="fin-item"><div class="fin-label">Hypotéka / měs.</div><div class="fin-value">${fmtM(p.monthly_mortgage)}</div></div>
+          <div class="fin-item"><div class="fin-label">Fond oprav / správa</div><div class="fin-value">${fmtM(p.monthly_fee)}</div></div>
+          <div class="fin-item"><div class="fin-label">Pronájem / měs.</div><div class="fin-value ${p.monthly_rent ? 'positive' : ''}">${fmtM(p.monthly_rent)}</div></div>
+          <div class="fin-item"><div class="fin-label">Cash flow / měs.</div><div class="fin-value ${cfCls}">${cfVal}</div></div>
+        </div>
+      </div>
+
+      ${(p.monthly_mortgage != null || p.monthly_fee != null || p.monthly_rent != null) ? `
+      <div class="dash-section">
+        <div class="dash-section-title">Měsíční tok</div>
+        <div class="chart-box"><div class="chart-canvas-wrap"><canvas id="cf-chart"></canvas></div></div>
+      </div>` : ""}
+
+      ${p.address ? `
+      <div class="dash-section">
+        <div class="dash-section-title">Mapa polohy</div>
+        <div class="map-loading" id="prop-map-wrap">Načítám mapu…</div>
+      </div>` : ""}
+
+      <div class="dash-section">
+        <div class="dash-section-title">
+          Odhad tržní ceny
+          <button class="btn btn-secondary btn-sm" id="dash-btn-estimate">Odhadnout</button>
+        </div>
+        <div id="estimate-content">
+          <p style="color:var(--text-muted);font-size:12px">${(!p.dispo && !p.area_m2) ? 'Pro přesnější odhad vyplňte dispozici a plochu v úpravách nemovitosti.' : 'Klikněte na „Odhadnout" pro výpočet dle podobných inzerátů.'}</p>
+        </div>
+      </div>
+
+      <div class="dash-section">
+        <div class="dash-section-title">Fotky</div>
+        <div class="photo-thumbs" id="photo-thumbs">
+          ${photos.map((u,i) => `<div class="photo-thumb"><img src="${esc(u)}"><button class="photo-thumb-del" data-idx="${i}">✕</button></div>`).join("")}
+        </div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="photo-input" accept="image/*" multiple>
+          <div>📷 Klikněte pro nahrání fotek</div>
+          <div class="upload-label">JPG, PNG, WEBP – max 10 MB</div>
+        </div>
+      </div>
+
+      ${p.notes ? `<div class="dash-section">
+        <div class="dash-section-title">Poznámky</div>
+        <p style="font-size:13px;line-height:1.7;color:var(--text)">${esc(p.notes).replace(/\n/g,"<br>")}</p>
+      </div>` : ""}
+
+    </div>`;
+}
+
+function buildGallery(photos) {
+  if (!photos || !photos.length)
+    return `<div class="dash-gallery"><div class="no-img">Bez fotek</div></div>`;
+  const idx = Math.min(_galleryIdx, photos.length - 1);
+  return `<div class="dash-gallery">
+    <img src="${esc(photos[idx])}" alt="Foto ${idx+1}" onerror="this.style.display='none'">
+    ${photos.length > 1 ? `<button class="gallery-nav gallery-prev" id="gal-prev">&#8249;</button>
+      <button class="gallery-nav gallery-next" id="gal-next">&#8250;</button>
+      <span class="gallery-counter">${idx+1} / ${photos.length}</span>` : ""}
+  </div>`;
+}
+
+function refreshGallery(photos) {
+  const content = document.getElementById("dash-content");
+  const gal = content.querySelector(".dash-gallery");
+  if (!gal) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = buildGallery(photos);
+  gal.replaceWith(tmp.firstElementChild);
+  attachGalleryNav(photos);
+}
+
+function attachGalleryNav(photos) {
+  const prev = document.getElementById("gal-prev");
+  const next = document.getElementById("gal-next");
+  if (prev) prev.addEventListener("click", () => {
+    _galleryIdx = (_galleryIdx - 1 + photos.length) % photos.length;
+    refreshGallery(photos);
+  });
+  if (next) next.addEventListener("click", () => {
+    _galleryIdx = (_galleryIdx + 1) % photos.length;
+    refreshGallery(photos);
+  });
+}
+
+/* ── Dashboard event listeners ── */
+function attachDashEvents(p) {
+  attachGalleryNav(p.photos || []);
+
+  document.getElementById("dash-btn-edit").addEventListener("click", () => openFormModal(p));
+  document.getElementById("dash-btn-delete").addEventListener("click", async () => {
+    if (!confirm("Smazat tuto nemovitost?")) return;
+    await api(`/api/owned-properties/${p.id}/`, { method: "DELETE" });
+    _activePropId = null;
+    showPlaceholder();
+    await loadProps();
+  });
+
+  const estBtn = document.getElementById("dash-btn-estimate");
+  if (estBtn) estBtn.addEventListener("click", () => loadEstimate(p.id));
+
+  // Photo delete
+  document.querySelectorAll(".photo-thumb-del").forEach(btn =>
+    btn.addEventListener("click", async e => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.idx);
+      const newPhotos = [...(p.photos||[])];
+      newPhotos.splice(idx, 1);
+      await api(`/api/owned-properties/${p.id}/`, {
+        method: "PUT", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ photos: newPhotos }),
+      });
+      p.photos = newPhotos;
+      _galleryIdx = 0;
+      await loadProps();
+    })
+  );
+
+  // Upload
+  const zone  = document.getElementById("upload-zone");
+  const input = document.getElementById("photo-input");
+  if (zone) zone.addEventListener("click", () => input.click());
+  if (input) input.addEventListener("change", async () => {
+    for (const file of input.files) {
+      const fd = new FormData();
+      fd.append("photo", file);
+      try {
+        const res = await fetch(`/api/owned-properties/${p.id}/upload-photo/`, {
+          method: "POST", headers: {"X-CSRFToken": getCsrf()}, body: fd,
+        });
+        const data = await res.json();
+        p.photos = data.photos;
+      } catch (err) { alert("Chyba při nahrávání: " + err.message); }
+    }
+    await loadProps();
+  });
+}
+
+/* ── Cashflow chart ── */
+function renderCashflowChart(p) {
+  const canvas = document.getElementById("cf-chart");
+  if (!canvas) return;
+  const income   = p.monthly_rent || 0;
+  const mortgage = p.monthly_mortgage || 0;
+  const fee      = p.monthly_fee || 0;
+  const cf       = income - mortgage - fee;
+  _cfChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: ["Pronájem", "Hypotéka", "Fond oprav", "Cash flow"],
+      datasets: [{
+        data: [income, -mortgage, -fee, cf],
+        backgroundColor: ["#B4C540cc","#e0525240","#d9770640", cf >= 0 ? "#2a6b3a80" : "#e0525280"],
+        borderColor: ["#B4C540","#e05252","#d97706", cf >= 0 ? "#2a6b3a" : "#e05252"],
+        borderWidth: 2, borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => v.toLocaleString("cs-CZ") + " Kč", font: { size: 11 } }, grid: { color: "rgba(0,0,0,.06)" } },
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── Leaflet map ── */
+async function renderMap(address) {
+  const wrap = document.getElementById("prop-map-wrap");
+  if (!wrap) return;
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+      { headers: { "Accept-Language": "cs" } }
+    );
+    const results = await resp.json();
+    if (!results.length) { wrap.textContent = "Mapa nenalezena pro tuto adresu."; return; }
+    const { lat, lon, display_name } = results[0];
+    wrap.id = "prop-map"; wrap.className = "prop-map"; wrap.textContent = "";
+    _leafletMap = L.map("prop-map").setView([+lat, +lon], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(_leafletMap);
+    L.marker([+lat, +lon]).addTo(_leafletMap).bindPopup(esc(display_name)).openPopup();
+  } catch(e) { if (wrap) wrap.textContent = "Chyba při načítání mapy."; }
+}
+
+/* ── Price estimate ── */
+async function loadEstimate(propId) {
+  const el = document.getElementById("estimate-content");
+  el.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:12px"><span class="spinner"></span> Počítám odhad…</div>';
+  try {
+    const data = await api(`/api/owned-properties/${propId}/estimate/`);
+    if (!data.count) {
+      el.innerHTML = `<p style="color:var(--text-muted);font-size:12px">Nenalezeny žádné podobné inzeráty${data.locality_keyword ? ' pro lokalitu „' + esc(data.locality_keyword) + '"' : ''}. Zkuste doplnit adresu s názvem města nebo části.</p>`;
+      return;
+    }
+    const medPm2 = data.median_price_per_m2 ? data.median_price_per_m2.toLocaleString("cs-CZ") + " Kč/m²" : "–";
+    const estVal = data.estimated_value ? data.estimated_value.toLocaleString("cs-CZ") + " Kč" : "–";
+    const locInfo = data.locality_keyword ? ` <span style="color:var(--text-muted);font-size:11px">(lokalita: ${esc(data.locality_keyword)})</span>` : "";
+    const simItems = (data.similar||[]).map(l => `
+      <div class="sim-item">
+        <div class="sim-info">
+          <div>${esc(l.dispo||"")} · ${l.area_m2 ? l.area_m2 + " m²" : ""}</div>
+          <div class="sim-loc">${esc(l.locality||"")}</div>
+        </div>
+        <div class="sim-price">${l.price_czk ? l.price_czk.toLocaleString("cs-CZ") + " Kč" : "–"}</div>
+        <div class="sim-pm2">${l.price_per_m2 ? l.price_per_m2.toLocaleString("cs-CZ") + " /m²" : ""}</div>
+        <a class="sim-link" href="${esc(l.url)}" target="_blank" rel="noopener">↗</a>
+      </div>`).join("");
+    el.innerHTML = `
+      <div class="estimate-box">
+        <div class="estimate-grid">
+          <div class="estimate-item"><div class="estimate-label">Srovnáno inzerátů</div><div class="estimate-value">${data.count}${locInfo}</div></div>
+          <div class="estimate-item"><div class="estimate-label">Medián Kč/m²</div><div class="estimate-value">${medPm2}</div></div>
+          <div class="estimate-item"><div class="estimate-label">Odhadovaná cena</div><div class="estimate-value">${estVal}</div></div>
+        </div>
+        <div class="sim-title">Nejpodobnější inzeráty (seřazeno dle plochy)</div>
+        <div class="sim-list">${simItems}</div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red);font-size:12px">Chyba: ${esc(e.message)}</p>`;
+  }
+}
+
+/* ── Form modal (add / edit) ── */
+function openFormModal(existing) {
+  const inner = document.getElementById("form-modal-inner");
+  inner.innerHTML = buildFormHTML(existing);
+  document.getElementById("form-modal").classList.remove("hidden");
+  attachFormEvents(existing);
+}
+function closeFormModal() {
+  document.getElementById("form-modal").classList.add("hidden");
+}
+
+function buildFormHTML(p) {
+  const v = f => p ? (p[f] != null ? p[f] : "") : "";
+  const title = p ? "Upravit nemovitost" : "Přidat nemovitost";
+  const dispoOpts = DISPO_OPTIONS.map(d =>
+    `<option value="${esc(d)}" ${v("dispo") === d ? "selected" : ""}>${esc(d)}</option>`
+  ).join("");
+  return `
+    <div class="form-modal-header">
+      <div class="form-modal-title">${title}</div>
+      <button class="btn btn-ghost-dark btn-sm" id="btn-form-close">✕</button>
+    </div>
+    <div class="form-modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Název *</label><input id="f-name" value="${esc(v("name"))}"></div>
+        <div class="form-group full"><label>Adresa / lokalita</label><input id="f-address" value="${esc(v("address"))}" placeholder="např. Kodaňská 47, Praha 2 - Vinohrady"></div>
+        <div class="form-group"><label>Dispozice</label>
+          <select id="f-dispo"><option value="">– vyberte –</option>${dispoOpts}</select>
+        </div>
+        <div class="form-group"><label>Plocha (m²)</label><input type="number" id="f-area" value="${v("area_m2")}" step="0.5"></div>
+        <div class="form-group"><label>Datum koupě</label><input type="date" id="f-pdate" value="${v("purchase_date")}"></div>
+        <div class="form-group"><label>Pořizovací cena (Kč)</label><input type="number" id="f-purchase" value="${v("purchase_price")}"></div>
+        <div class="form-group"><label>Aktuální hodnota (Kč)</label><input type="number" id="f-value" value="${v("current_value")}"></div>
+        <div class="form-group"><label>Celkem investováno (Kč)</label><input type="number" id="f-invested" value="${v("total_invested")}"></div>
+        <div class="form-group"><label>Hypotéka (Kč/měs.)</label><input type="number" id="f-mortgage" value="${v("monthly_mortgage")}"></div>
+        <div class="form-group"><label>Fond oprav / správa (Kč/měs.)</label><input type="number" id="f-fee" value="${v("monthly_fee")}"></div>
+        <div class="form-group"><label>Příjem z pronájmu (Kč/měs.)</label><input type="number" id="f-rent" value="${v("monthly_rent")}"></div>
+        <div class="form-group full"><label>Popis</label><textarea id="f-desc">${esc(v("description"))}</textarea></div>
+        <div class="form-group full"><label>Poznámky</label><textarea id="f-notes">${esc(v("notes"))}</textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost-dark" id="btn-form-cancel">Zrušit</button>
+        <button class="btn btn-primary" id="btn-form-save">Uložit</button>
+      </div>
+      <p id="form-error" style="color:var(--red);font-size:12px;margin-top:8px"></p>
+    </div>`;
+}
+
+function attachFormEvents(existing) {
+  document.getElementById("btn-form-close").addEventListener("click", closeFormModal);
+  document.getElementById("btn-form-cancel").addEventListener("click", closeFormModal);
+  document.getElementById("btn-form-save").addEventListener("click", async () => {
+    const errEl = document.getElementById("form-error");
+    const body = {
+      name:             document.getElementById("f-name").value.trim(),
+      address:          document.getElementById("f-address").value.trim(),
+      dispo:            document.getElementById("f-dispo").value.trim(),
+      area_m2:          document.getElementById("f-area").value || null,
+      purchase_date:    document.getElementById("f-pdate").value || null,
+      description:      document.getElementById("f-desc").value.trim(),
+      notes:            document.getElementById("f-notes").value.trim(),
+      purchase_price:   document.getElementById("f-purchase").value || null,
+      current_value:    document.getElementById("f-value").value || null,
+      total_invested:   document.getElementById("f-invested").value || null,
+      monthly_mortgage: document.getElementById("f-mortgage").value || null,
+      monthly_fee:      document.getElementById("f-fee").value || null,
+      monthly_rent:     document.getElementById("f-rent").value || null,
+    };
+    if (!body.name) { errEl.textContent = "Název je povinný."; return; }
+    try {
+      let saved;
+      if (existing) {
+        saved = await api(`/api/owned-properties/${existing.id}/`, {
+          method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body),
+        });
+      } else {
+        saved = await api("/api/owned-properties/", {
+          method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body),
+        });
+      }
+      closeFormModal();
+      _activePropId = saved.id;
+      await loadProps();
+    } catch (err) { errEl.textContent = err.message; }
+  });
+}
+
+/* ── Drag resize left pane ── */
+function initDragResize() {
+  const pane   = document.getElementById("props-list-pane");
+  const handle = document.getElementById("drag-props");
+  handle.addEventListener("mousedown", e => {
+    e.preventDefault();
+    handle.classList.add("dragging");
+    document.body.style.userSelect = "none";
+    const move = ev => {
+      const w = Math.min(Math.max(ev.clientX, 200), 550);
+      pane.style.flex = `0 0 ${w}px`;
+      pane.style.width = w + "px";
+    };
+    const up = () => {
+      handle.classList.remove("dragging");
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+}
+
+/* ── Wire up add button + backdrop ── */
+document.getElementById("btn-add-prop").addEventListener("click", () => openFormModal(null));
+document.getElementById("form-modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("form-modal")) closeFormModal();
+});
+
+initDragResize();
+loadProps();
+</script>
+</body>
+</html>

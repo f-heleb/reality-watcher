@@ -5,7 +5,7 @@
 
 // ── State ────────────────────────────────────────────────────────────────
 const state = {
-  filters: { dispo: [], locality: [], price_min: "", price_max: "", area_min: "", area_max: "", q: "", sort: "newest", page: 1 },
+  filters: { dispo: [], price_min: "", price_max: "", area_min: "", area_max: "", q: "", sort: "newest", page: 1 },
   activeConfigId: null,   // null = "Všechny"
   configs: [],            // loaded search configs for tabs
   total: 0,
@@ -87,59 +87,47 @@ function initDragResize() {
 async function loadTabs() {
   const data = await apiFetch("/api/search-configs/");
   state.configs = data.results;
+  // Auto-select first watcher on initial load
+  if (state.activeConfigId === null && state.configs.length > 0) {
+    state.activeConfigId = state.configs[0].id;
+  }
   renderTabs();
 }
 
 function renderTabs() {
   const el = document.getElementById("watcher-tabs");
-  const totalCount = state.configs.reduce((s, c) => s + (c.listing_count || 0), 0);
-  const allActive = state.activeConfigId === null ? "active" : "";
-  let html = `<button class="tab-btn ${allActive}" data-id="">Všechny <span class="tab-count">${totalCount}</span></button>`;
+  let html = "";
   for (const c of state.configs) {
     const active = state.activeConfigId === c.id ? "active" : "";
     html += `<button class="tab-btn ${active}" data-id="${c.id}">${escHtml(c.name)} <span class="tab-count">${c.listing_count || 0}</span></button>`;
   }
+  // "+" add-watcher tab
+  html += `<button class="tab-btn tab-add" id="tab-add-btn" title="Přidat sledování">＋</button>`;
   el.innerHTML = html;
-  el.querySelectorAll(".tab-btn").forEach(btn => {
+  el.querySelectorAll(".tab-btn[data-id]").forEach(btn => {
     btn.addEventListener("click", () => {
-      state.activeConfigId = btn.dataset.id ? Number(btn.dataset.id) : null;
+      state.activeConfigId = Number(btn.dataset.id);
       state.filters.page = 1;
       renderTabs();
       loadListings();
     });
   });
+  const addBtn = document.getElementById("tab-add-btn");
+  if (addBtn) addBtn.addEventListener("click", () => openModal("modal-add-config"));
 }
 
 // ── Filter options ───────────────────────────────────────────────────────
-let _allLocalities = [];
 async function loadFilterOptions() {
   const data = await apiFetch("/api/filter-options/");
-  _allLocalities = data.locality;
-
   const dispoEl = document.getElementById("filter-dispo");
   dispoEl.innerHTML = data.dispo.map(d =>
     `<label><input type="checkbox" class="cb-dispo" value="${escHtml(d)}" /> ${escHtml(d)}</label>`
   ).join("");
   document.querySelectorAll(".cb-dispo").forEach(cb => cb.addEventListener("change", onFilterChange));
-
-  renderLocalityList("");
-  document.getElementById("locality-search").addEventListener("input", e =>
-    renderLocalityList(e.target.value.toLowerCase())
-  );
-}
-
-function renderLocalityList(filter) {
-  const filtered = filter ? _allLocalities.filter(l => l.toLowerCase().includes(filter)) : _allLocalities;
-  document.getElementById("filter-locality").innerHTML = filtered.map(l => {
-    const checked = state.filters.locality.includes(l) ? "checked" : "";
-    return `<label><input type="checkbox" class="cb-locality" value="${escHtml(l)}" ${checked} /> ${escHtml(l)}</label>`;
-  }).join("");
-  document.querySelectorAll(".cb-locality").forEach(cb => cb.addEventListener("change", onFilterChange));
 }
 
 function onFilterChange() {
   state.filters.dispo    = [...document.querySelectorAll(".cb-dispo:checked")].map(e => e.value);
-  state.filters.locality = [...document.querySelectorAll(".cb-locality:checked")].map(e => e.value);
   state.filters.price_min = document.getElementById("price-min").value;
   state.filters.price_max = document.getElementById("price-max").value;
   state.filters.area_min  = document.getElementById("area-min").value;
@@ -155,7 +143,6 @@ function buildQuery() {
   const f = state.filters;
   const p = new URLSearchParams();
   f.dispo.forEach(d => p.append("dispo", d));
-  f.locality.forEach(l => p.append("locality", l));
   if (f.price_min) p.set("price_min", f.price_min);
   if (f.price_max) p.set("price_max", f.price_max);
   if (f.area_min)  p.set("area_min",  f.area_min);
@@ -390,7 +377,6 @@ async function runAnalysis(id, listing) {
 const openModal  = id => document.getElementById(id).classList.remove("hidden");
 const closeModal = id => document.getElementById(id).classList.add("hidden");
 
-document.getElementById("btn-add-config").addEventListener("click", () => openModal("modal-add-config"));
 document.getElementById("btn-cfg-cancel").addEventListener("click", () => closeModal("modal-add-config"));
 
 document.getElementById("btn-cfg-save").addEventListener("click", async () => {
@@ -407,7 +393,7 @@ document.getElementById("btn-cfg-save").addEventListener("click", async () => {
     errEl.classList.add("hidden");
     await loadTabs();
     await loadFilterOptions();
-    loadListings();
+    await loadListings();
   } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
 });
 
@@ -462,10 +448,10 @@ async function renderConfigList() {
 
 // ── Filters reset ─────────────────────────────────────────────────────────
 document.getElementById("btn-reset-filters").addEventListener("click", () => {
-  document.querySelectorAll(".cb-dispo, .cb-locality").forEach(cb => cb.checked = false);
+  document.querySelectorAll(".cb-dispo").forEach(cb => cb.checked = false);
   ["price-min","price-max","area-min","area-max","text-search"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("sort-select").value = "newest";
-  state.filters = { dispo:[], locality:[], price_min:"", price_max:"", area_min:"", area_max:"", q:"", sort:"newest", page:1 };
+  state.filters = { dispo:[], price_min:"", price_max:"", area_min:"", area_max:"", q:"", sort:"newest", page:1 };
   loadListings();
 });
 ["price-min","price-max","area-min","area-max"].forEach(id =>
