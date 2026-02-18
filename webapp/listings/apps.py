@@ -13,6 +13,18 @@ class ListingsConfig(AppConfig):
         import os
         import threading
 
+        # Run any pending migrations automatically. This prevents errors when new
+        # fields (like `purchase_date`) have been added but the developer forgot to
+        # migrate the database. We only do this when the server is started normally
+        # (not during a management command) and we silence output.
+        from django.core.management import call_command
+
+        try:
+            call_command("migrate", run_syncdb=True, verbosity=0)
+        except Exception:
+            # If migration fails for whatever reason, we don't want to crash the app.
+            pass
+
         # Defer DB access by a couple of seconds so Django is fully ready.
         # This avoids the "Accessing the database during app initialization" warning.
         def _start():

@@ -1,1 +1,0 @@
-# Sreality.cz integration

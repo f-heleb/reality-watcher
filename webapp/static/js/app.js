@@ -180,18 +180,15 @@ function renderCard(l) {
   const badge  = l.has_analysis ? '<span class="card-analysis-badge">AI ✓</span>' : "";
   return `
     <div class="listing-card ${active}" data-id="${l.id}">
-      <div class="card-top">
-        <span class="card-title">${escHtml(l.dispo || "")} ${escHtml(l.locality || "")}</span>
-        <span class="card-price">${fmtPrice(l.price_czk)}</span>
-      </div>
-      <div class="card-meta">
-        ${l.dispo   ? `<span class="card-tag dispo">${escHtml(l.dispo)}</span>` : ""}
-        ${l.area_m2 ? `<span class="card-tag area">${fmtArea(l.area_m2)}</span>` : ""}
-        ${l.price_per_m2 ? `<span class="card-tag ppm2">${fmtPriceM2(l.price_per_m2)}</span>` : ""}
-      </div>
-      <div class="card-bottom">
-        <span class="card-locality">${escHtml(l.locality || "")}</span>
-        <span class="card-age">${timeAgo(l.first_seen)} ${badge}</span>
+      <div class="card-title">${escHtml(l.dispo || "")} ${escHtml(l.locality || "")}</div>
+      <div class="card-price">${fmtPrice(l.price_czk)}</div>
+      ${l.dispo   ? `<div class="card-field">${escHtml(l.dispo)}</div>` : ""}
+      ${l.area_m2 ? `<div class="card-field">${fmtArea(l.area_m2)}</div>` : ""}
+      ${l.price_per_m2 ? `<div class="card-field">${fmtPriceM2(l.price_per_m2)}</div>` : ""}
+      <div class="card-locality">${escHtml(l.locality || "")}</div>
+      <div class="card-footer">
+        <span class="card-age">${timeAgo(l.first_seen)}</span>
+        ${badge}
       </div>
     </div>`;
 }

@@ -141,19 +141,16 @@ a:hover { text-decoration: underline; }
   border-left: 3px solid transparent;
   border-radius: var(--radius); padding: 11px 13px; margin-bottom: 7px;
   cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .1s;
+  display: flex; flex-direction: column; gap: 4px;
 }
 .listing-card:hover { border-left-color: var(--primary); box-shadow: var(--shadow-md); transform: translateX(1px); }
 .listing-card.active { border-left-color: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 2px rgba(180,197,64,.25); }
-.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.card-title { font-weight: 600; font-size: 13px; line-height: 1.35; flex: 1; color: var(--text); }
-.card-price { font-weight: 700; color: var(--header-bg); white-space: nowrap; font-size: 13px; }
-.card-meta { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
-.card-tag { border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 500; }
-.card-tag.dispo { color: var(--header-bg); background: rgba(180,197,64,.2); }
-.card-tag.area  { color: #2a6b3a; background: #e6f4ea; }
-.card-tag.ppm2  { color: #7a3b00; background: #fff0d6; }
-.card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+
+.card-title { font-weight: 600; font-size: 13px; line-height: 1.35; color: var(--text); }
+.card-price { font-weight: 700; color: var(--header-bg); font-size: 14px; }
+.card-field { color: var(--text); font-size: 12px; }
 .card-locality { color: var(--text-muted); font-size: 12px; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
 .card-age { color: var(--text-muted); font-size: 11px; }
 .card-analysis-badge { font-size: 10px; background: rgba(54,134,201,.12); color: var(--accent-dark); border-radius: 4px; padding: 1px 5px; font-weight: 600; }
 
