@@ -176,21 +176,41 @@ async function loadListings() {
 }
 
 function renderCard(l) {
+
   const active = l.id === state.selectedId ? "active" : "";
-  const badge  = l.has_analysis ? '<span class="card-analysis-badge">AI ✓</span>' : "";
+
+  const badge = l.has_analysis ? '<span class="card-analysis-badge">AI ✓</span>' : "";
+
+  const title = `${l.object_type} - ${l.locality}`;
+
   return `
+
     <div class="listing-card ${active}" data-id="${l.id}">
-      <div class="card-title">${escHtml(l.dispo || "")} ${escHtml(l.locality || "")}</div>
+
+      <div class="card-title">${escHtml(title)}</div>
+
       <div class="card-price">${fmtPrice(l.price_czk)}</div>
-      ${l.dispo   ? `<div class="card-field">${escHtml(l.dispo)}</div>` : ""}
-      ${l.area_m2 ? `<div class="card-field">${fmtArea(l.area_m2)}</div>` : ""}
-      ${l.price_per_m2 ? `<div class="card-field">${fmtPriceM2(l.price_per_m2)}</div>` : ""}
-      <div class="card-locality">${escHtml(l.locality || "")}</div>
-      <div class="card-footer">
-        <span class="card-age">${timeAgo(l.first_seen)}</span>
-        ${badge}
+
+      <div class="card-tags">
+
+        ${l.dispo ? `<span class="chip dispo">${escHtml(l.dispo)}</span>` : ""}
+
+        ${l.offer_type ? `<span class="chip offer-type">${escHtml(l.offer_type)}</span>` : ""}
+
+        ${l.area_m2 ? `<span class="chip area">${fmtArea(l.area_m2)}</span>` : ""}
+
       </div>
+
+      <div class="card-footer">
+
+        <span class="card-age">${timeAgo(l.first_seen)}</span>
+
+        ${badge}
+
+      </div>
+
     </div>`;
+
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────

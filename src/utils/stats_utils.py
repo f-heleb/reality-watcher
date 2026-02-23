@@ -1,5 +1,3 @@
-# stats_utils.py
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import os, csv, math
@@ -159,7 +157,6 @@ def format_summary_block(title: str, raw_stats: Dict, clean_stats: Dict) -> list
     ]
     return blocks
 
-# Public helpers pro manažer:
 def stats_last(channel_id: str, n: int) -> Tuple[list, int, int]:
     rows = read_log(channel_id)
     sample = _slice_last(rows, n)

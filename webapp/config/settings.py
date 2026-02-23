@@ -2,18 +2,11 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-REPO_ROOT = BASE_DIR.parent  # reality-watcher/
+REPO_ROOT = BASE_DIR.parent
 
-# Load .env from repo root
 load_dotenv(REPO_ROOT / ".env")
 
-# ---------------------------------------------------------------------------
-# Security
-# ---------------------------------------------------------------------------
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-change-me-in-production",
@@ -21,9 +14,6 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
-# ---------------------------------------------------------------------------
-# Application definition
-# ---------------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -64,9 +54,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# ---------------------------------------------------------------------------
-# Database
-# ---------------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -74,35 +61,20 @@ DATABASES = {
     }
 }
 
-# ---------------------------------------------------------------------------
-# Internationalisation
-# ---------------------------------------------------------------------------
 LANGUAGE_CODE = "cs"
 TIME_ZONE = "Europe/Prague"
 USE_I18N = True
 USE_TZ = True
 
-# ---------------------------------------------------------------------------
-# Static files
-# ---------------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# ---------------------------------------------------------------------------
-# Media files (user uploads)
-# ---------------------------------------------------------------------------
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ---------------------------------------------------------------------------
-# Authentication
-# ---------------------------------------------------------------------------
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
-# ---------------------------------------------------------------------------
-# Default primary key
-# ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

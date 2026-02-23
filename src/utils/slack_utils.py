@@ -1,17 +1,3 @@
-# slack_utils.py
-"""
-Utility functions for Slack API interactions used across the watcher & manager.
-
-Includes:
-- slack_post_text
-- slack_post_blocks
-- build_listing_blocks
-- build_listing_blocks_single
-- invite_users_to_channel
-- safe_rename_with_increment
-- archive_channel
-"""
-
 from __future__ import annotations
 from typing import List, Dict, Any
 import re
@@ -21,13 +7,7 @@ from slack_sdk.web import WebClient
 
 from src.core.ai_analysis import call_chatgpt_for_listing, format_analysis_for_slack
 
-# Non-breaking space for nice thousands formatting
 NBSP = "\u00A0"
-
-
-# ----------------------------------------------------------
-# Basic posting helpers
-# ----------------------------------------------------------
 
 def slack_post_text(client: WebClient, channel_id: str, text: str):
     """Post plain text into a Slack channel."""
@@ -47,11 +27,6 @@ def slack_post_blocks(client: WebClient, channel_id: str, blocks: list, fallback
     resp = client.chat_postMessage(**payload)
     if not resp.get("ok"):
         raise RuntimeError(f"Slack blocks post failed: {resp}")
-
-
-# ----------------------------------------------------------
-# Block Kit formatting of listings
-# ----------------------------------------------------------
 
 def _format_listing_to_text(it: Dict[str, Any]) -> str:
     """
@@ -140,11 +115,6 @@ def build_listing_blocks_single(it: Dict[str, Any], header_text: str = "New list
 
     return blocks
 
-
-# ----------------------------------------------------------
-# Channel member ops
-# ----------------------------------------------------------
-
 def invite_users_to_channel(client: WebClient, channel_id: str, users: List[str]):
     """
     Invite up to 30 users at a time. Slack hard limit: 30 per request.
@@ -176,11 +146,6 @@ def invite_users_to_channel(client: WebClient, channel_id: str, users: List[str]
             batch = []
 
     _flush()
-
-
-# ----------------------------------------------------------
-# Channel rename + archive
-# ----------------------------------------------------------
 
 def _channel_name_exists(client: WebClient, name: str) -> bool:
     cursor = None

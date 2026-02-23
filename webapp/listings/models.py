@@ -57,6 +57,22 @@ class Listing(models.Model):
     def __str__(self):
         return f"{self.dispo} {self.locality} – {self.price_czk} Kč"
 
+    @property
+    def offer_type(self):
+        if "prodej" in self.url:
+            return "prodej"
+        if "pronajem" in self.url:
+            return "pronájem"
+        return ""
+
+    @property
+    def object_type(self):
+        import re
+        m = re.search(r"\b(Byt|Dům|Pozemek|Garáž|Komerční|Chata)\b", self.title, re.IGNORECASE)
+        if m:
+            return m.group(1)
+        return "Byt"
+
     def to_dict(self):
         return {
             "id": self.pk,
@@ -67,6 +83,8 @@ class Listing(models.Model):
             "area_m2": self.area_m2,
             "dispo": self.dispo,
             "locality": self.locality,
+            "offer_type": self.offer_type,
+            "object_type": self.object_type,
             "price_per_m2": self.price_per_m2,
             "description": self.description,
             "images": self.images or [],

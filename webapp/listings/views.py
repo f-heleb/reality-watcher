@@ -14,19 +14,8 @@ from listings.models import Listing, SearchConfig, AIAnalysis, OwnedProperty
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Main page
-# ---------------------------------------------------------------------------
-
-
 class IndexView(LoginRequiredMixin, TemplateView):
     template_name = "listings/index.html"
-
-
-# ---------------------------------------------------------------------------
-# Filter options (distinct dispo + locality values for sidebar)
-# ---------------------------------------------------------------------------
-
 
 class FilterOptionsView(LoginRequiredMixin, View):
     def get(self, request):
@@ -49,19 +38,12 @@ class FilterOptionsView(LoginRequiredMixin, View):
             }
         )
 
-
-# ---------------------------------------------------------------------------
-# Listing list (with filters + pagination)
-# ---------------------------------------------------------------------------
-
-
 class ListingListView(LoginRequiredMixin, View):
     PAGE_SIZE = 40
 
     def get(self, request):
         qs = Listing.objects.all()
 
-        # --- Filters ---
         config_id = request.GET.get("config_id")
         if config_id:
             qs = qs.filter(search_config_id=int(config_id))
@@ -96,7 +78,6 @@ class ListingListView(LoginRequiredMixin, View):
                 | Q(description__icontains=search)
             )
 
-        # --- Sort ---
         sort = request.GET.get("sort", "newest")
         sort_map = {
             "newest": "-first_seen",
@@ -110,7 +91,6 @@ class ListingListView(LoginRequiredMixin, View):
         }
         qs = qs.order_by(sort_map.get(sort, "-first_seen"))
 
-        # --- Pagination ---
         try:
             page = max(1, int(request.GET.get("page", 1)))
         except ValueError:
@@ -128,12 +108,6 @@ class ListingListView(LoginRequiredMixin, View):
             }
         )
 
-
-# ---------------------------------------------------------------------------
-# Single listing detail
-# ---------------------------------------------------------------------------
-
-
 class ListingDetailView(LoginRequiredMixin, View):
     def get(self, request, pk):
         listing = get_object_or_404(Listing.objects.select_related("aianalysis"), pk=pk)
@@ -144,11 +118,6 @@ class ListingDetailView(LoginRequiredMixin, View):
         except AIAnalysis.DoesNotExist:
             data["analysis"] = None
         return JsonResponse(data)
-
-
-# ---------------------------------------------------------------------------
-# AI analysis (trigger on demand, cached after first call)
-# ---------------------------------------------------------------------------
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -163,12 +132,6 @@ class ListingAnalyzeView(LoginRequiredMixin, View):
         except Exception as exc:
             logger.exception("AI analysis failed for listing %d", pk)
             return JsonResponse({"error": str(exc)}, status=500)
-
-
-# ---------------------------------------------------------------------------
-# SearchConfig CRUD
-# ---------------------------------------------------------------------------
-
 
 @method_decorator(csrf_exempt, name="dispatch")
 class SearchConfigListView(LoginRequiredMixin, View):
@@ -233,12 +196,6 @@ class SearchConfigDetailView(LoginRequiredMixin, View):
         config.delete()
         return JsonResponse({"deleted": pk})
 
-
-# ---------------------------------------------------------------------------
-# Manual scrape trigger (for testing without waiting for the interval)
-# ---------------------------------------------------------------------------
-
-
 @method_decorator(csrf_exempt, name="dispatch")
 class SearchConfigScrapeNowView(LoginRequiredMixin, View):
     def post(self, request, pk):
@@ -251,12 +208,6 @@ class SearchConfigScrapeNowView(LoginRequiredMixin, View):
         except Exception as exc:
             logger.exception("Manual scrape failed for config %d", pk)
             return JsonResponse({"error": str(exc)}, status=500)
-
-
-# ---------------------------------------------------------------------------
-# Owned properties (personal portfolio)
-# ---------------------------------------------------------------------------
-
 
 class PropertiesView(LoginRequiredMixin, TemplateView):
     template_name = "listings/properties.html"
